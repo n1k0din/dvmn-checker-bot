@@ -34,9 +34,9 @@
 ## Подготовьте переменные окружения
 
 Установите следующие переменные окружения (см. `.env.example`):
-- DEVMAN_API_TOKEN - API токен Девмана получить [на Девмане](https://dvmn.org/api/docs/)
-- TELEGRAM_API_TOKEN - Токен ТГ бота получить от [Отца ботов](https://telegram.me/BotFather)
-- NOTIFICATIONS_CHAT_ID - ИД получателя оповещений получить от [специального бота](https://telegram.me/userinfobot) 
+- `DEVMAN_API_TOKEN` - API токен Девмана получить [на Девмане](https://dvmn.org/api/docs/)
+- `TELEGRAM_API_TOKEN` - Токен ТГ бота получить от [Отца ботов](https://telegram.me/BotFather)
+- `NOTIFICATIONS_CHAT_ID` - ИД получателя оповещений получить от [специального бота](https://telegram.me/userinfobot) 
 
 ## Запуск
 
