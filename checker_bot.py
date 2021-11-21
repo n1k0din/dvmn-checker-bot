@@ -48,9 +48,9 @@ def build_notification(attempt: dict) -> str:
     is_negative = attempt['is_negative']
 
     message = f'''\
-    Работа "{lesson_title}" проверена.
-    {is_negative_message[is_negative]}
-    Ссылка на урок: {lesson_url}.
+        Работа "{lesson_title}" проверена.
+        {is_negative_message[is_negative]}
+        Ссылка на урок: {lesson_url}.
     '''
     return textwrap.dedent(message)
 
