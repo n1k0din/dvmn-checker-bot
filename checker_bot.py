@@ -1,21 +1,19 @@
 import os
+import textwrap
+from time import sleep
 from typing import Generator
 
 import requests
 import telegram
 from dotenv import load_dotenv
 
-load_dotenv()
-
-DVMN_API_TOKEN = os.getenv('DEVMAN_API_TOKEN')
-TELEGRAM_API_TOKEN = os.getenv('TELEGRAM_API_TOKEN')
-CHAT_ID = os.getenv('NOTIFICATIONS_CHAT_ID')
 API_URL = 'https://dvmn.org/api'
 
 
 def generate_long_polling_reviews(
+    api_token: str,
     api_url: str = API_URL,
-    api_token: str = DVMN_API_TOKEN,
+    reconnect_timeout: int = 5,
 ) -> Generator[dict, None, None]:
     """Gets user reviews via long polling."""
     url = f'{api_url}/long_polling'
@@ -26,53 +24,47 @@ def generate_long_polling_reviews(
     while True:
         try:
             response = requests.get(url, params=params, headers=headers)
-        except (
-            requests.exceptions.ReadTimeout,
-            requests.exceptions.ConnectionError,
-        ):
+        except requests.exceptions.ReadTimeout:
             continue
+        except requests.exceptions.ConnectionError:
+            sleep(reconnect_timeout)
 
         response.raise_for_status()
         reviews = response.json()
         yield reviews
-        params['timestamp'] = reviews.get('timestamp_to_request')
+        if reviews.get('status') == 'timeout':
+            params['timestamp'] = reviews.get('timestamp_to_request')
 
 
-def send_message(bot: telegram.Bot, message: str, chat_id: int = CHAT_ID):
-    """Sends message from bot to chat."""
-    bot.send_message(chat_id=chat_id, text=message)
-
-
-def generate_review_notifications(lesson_review: dict) -> Generator[str, None, None]:
-    """Generate notifications for all attempts in review response."""
-    for attempt in lesson_review.get('new_attempts'):
-        yield build_notification_of_attempt(attempt)
-
-
-def build_notification_of_attempt(lesson_attempt: dict) -> str:
+def build_notification(attempt: dict) -> str:
     """Build notification message in depends on attempt."""
     is_negative_message = {
         True: 'К счатью, в работе нашлись ошибки!',
         False: 'Ну, вроде ок.',
     }
 
-    lesson_title = lesson_attempt['lesson_title']
-    lesson_url = lesson_attempt['lesson_url']
-    is_negative = lesson_attempt['is_negative']
+    lesson_title = attempt['lesson_title']
+    lesson_url = attempt['lesson_url']
+    is_negative = attempt['is_negative']
 
-    message_parts = (
-        f'Работа "{lesson_title}" проверена.',
-        is_negative_message[is_negative],
-        f'Ссылка на урок: {lesson_url}.',
-    )
-    return '\n'.join(message_parts)
+    message = f'''\
+    Работа "{lesson_title}" проверена.
+    {is_negative_message[is_negative]}
+    Ссылка на урок: {lesson_url}.
+    '''
+    return textwrap.dedent(message)
 
 
 if __name__ == '__main__':
-    bot = telegram.Bot(token=TELEGRAM_API_TOKEN)
+    load_dotenv()
+    dvmn_api_token = os.getenv('DEVMAN_API_TOKEN')
+    telegram_api_token = os.getenv('TELEGRAM_API_TOKEN')
+    chat_id = os.getenv('NOTIFICATIONS_CHAT_ID')
+    bot = telegram.Bot(token=telegram_api_token)
 
-    for review in generate_long_polling_reviews():
+    for review in generate_long_polling_reviews(dvmn_api_token):
         is_found = review.get('status') == 'found'
         if is_found:
-            for notification in generate_review_notifications(review):
-                send_message(bot, notification)
+            for attempt in review.get('new_attempts'):
+                notification = build_notification(attempt)
+                bot.send_message(chat_id=chat_id, text=notification)
