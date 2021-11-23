@@ -1,7 +1,7 @@
 import os
 import textwrap
 from time import sleep
-from typing import Generator
+from typing import Generator, Optional
 
 import requests
 import telegram
@@ -32,8 +32,20 @@ def generate_long_polling_reviews(
         response.raise_for_status()
         reviews = response.json()
         yield reviews
-        if reviews.get('status') == 'timeout':
-            params['timestamp'] = reviews.get('timestamp_to_request')
+
+        timestamp = get_timestamp(reviews)
+        if timestamp:
+            params['timestamp'] = timestamp
+
+
+def get_timestamp(reviews: dict) -> Optional[str]:
+    """Gets timestamp from response."""
+    status_timestamp_mapping = {
+        'found': 'last_attempt_timestamp',
+        'timeout': 'timestamp_to_request',
+    }
+    status = reviews.get('status')
+    return reviews.get(status_timestamp_mapping[status])
 
 
 def build_notification(attempt: dict) -> str:
