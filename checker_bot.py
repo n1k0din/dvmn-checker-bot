@@ -95,11 +95,15 @@ if __name__ == '__main__':
     logger.addHandler(TelegramLogsHandler(bot, chat_id))
     logger.info('Bot started!')
 
-    for review in generate_long_polling_reviews(dvmn_api_token):
-        logging.info(f'Got review: {review}')
-        is_found = review.get('status') == 'found'
-        if is_found:
-            for attempt in review.get('new_attempts'):
-                notification = build_notification(attempt)
-                bot.send_message(chat_id=chat_id, text=notification)
-                logger.debug(f'Sent notification to {chat_id}')
+    while True:
+        try:
+            for review in generate_long_polling_reviews(dvmn_api_token):
+                logging.info(f'Got review: {review}')
+                is_found = review.get('status') == 'found'
+                if is_found:
+                    for attempt in review.get('new_attempts'):
+                        notification = build_notification(attempt)
+                        bot.send_message(chat_id=chat_id, text=notification)
+                        logger.debug(f'Sent notification to {chat_id}')
+        except Exception:
+            logger.exception('А у бота ошибка!')
