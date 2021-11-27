@@ -8,7 +8,24 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
+logger = logging.getLogger(__file__)
+
 API_URL = 'https://dvmn.org/api'
+
+
+class TelegramLogsHandler(logging.Handler):
+    """Handler for sending messages via telegram bot."""
+
+    def __init__(self, tg_bot, chat_id):
+        """Inits bot and chat id."""
+        super().__init__()
+        self.chat_id = chat_id
+        self.tg_bot = tg_bot
+
+    def emit(self, record):
+        """Sends logger message to bot."""
+        log_entry = self.format(record)
+        self.tg_bot.send_message(chat_id=self.chat_id, text=log_entry)
 
 
 def generate_long_polling_reviews(
@@ -69,13 +86,14 @@ def build_notification(attempt: dict) -> str:
 
 
 if __name__ == '__main__':
-    logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+    logger.setLevel(logging.INFO)
     load_dotenv()
     dvmn_api_token = os.getenv('DEVMAN_API_TOKEN')
     telegram_api_token = os.getenv('TELEGRAM_API_TOKEN')
     chat_id = os.getenv('NOTIFICATIONS_CHAT_ID')
     bot = telegram.Bot(token=telegram_api_token)
-    logging.info('Bot started!')
+    logger.addHandler(TelegramLogsHandler(bot, chat_id))
+    logger.info('Bot started!')
 
     for review in generate_long_polling_reviews(dvmn_api_token):
         logging.info(f'Got review: {review}')
@@ -84,4 +102,4 @@ if __name__ == '__main__':
             for attempt in review.get('new_attempts'):
                 notification = build_notification(attempt)
                 bot.send_message(chat_id=chat_id, text=notification)
-                logging.debug(f'Sent notification to {chat_id}')
+                logger.debug(f'Sent notification to {chat_id}')
