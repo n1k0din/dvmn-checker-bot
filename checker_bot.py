@@ -1,3 +1,4 @@
+import logging
 import os
 import textwrap
 from time import sleep
@@ -68,15 +69,19 @@ def build_notification(attempt: dict) -> str:
 
 
 if __name__ == '__main__':
+    logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
     load_dotenv()
     dvmn_api_token = os.getenv('DEVMAN_API_TOKEN')
     telegram_api_token = os.getenv('TELEGRAM_API_TOKEN')
     chat_id = os.getenv('NOTIFICATIONS_CHAT_ID')
     bot = telegram.Bot(token=telegram_api_token)
+    logging.info('Bot started!')
 
     for review in generate_long_polling_reviews(dvmn_api_token):
+        logging.info(f'Got review: {review}')
         is_found = review.get('status') == 'found'
         if is_found:
             for attempt in review.get('new_attempts'):
                 notification = build_notification(attempt)
                 bot.send_message(chat_id=chat_id, text=notification)
+                logging.debug(f'Sent notification to {chat_id}')
