@@ -44,6 +44,13 @@
 python checker_bot.py
 ```
 
+## Деплой на Heroku
+- Зарегистрироваться на heroku.com
+- [Настроить интеграцию с github](https://devcenter.heroku.com/articles/github-integration)
+- Установить переменные окружения во вкладке Settings -> Config vars
+- Выполнить Manual Deploy -> Deploy Branch
+- Не забыть активировать Dyno во вкладке Resources
+
 ### Цель проекта
 
 Код написан в образовательных целях на онлайн-курсе для веб-разработчиков [dvmn.org](https://dvmn.org/).
